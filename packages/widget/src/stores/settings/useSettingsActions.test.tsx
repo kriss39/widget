@@ -5,6 +5,7 @@ import type { WidgetConfig } from '../../types/widget.js'
 import {
   createSettingsStore,
   defaultConfigurableSettings,
+  getDefaultConfigurableSettings,
 } from './createSettingsStore.js'
 import { SettingsStoreProvider } from './SettingsStore.js'
 
@@ -92,5 +93,24 @@ describe('widget configurable defaults', () => {
     expect(firstStore.getState().routePriority).toBe('FASTEST')
     expect(secondStore.getState().slippage).toBeUndefined()
     expect(secondStore.getState().routePriority).toBe('CHEAPEST')
+  })
+
+  it('resets with defaults from the current widget config', () => {
+    const store = createSettingsStore({
+      integrator: 'widget',
+    })
+
+    store.getState().reset(
+      [],
+      [],
+      getDefaultConfigurableSettings({
+        integrator: 'widget',
+        slippage: 0.02,
+        routePriority: 'FASTEST',
+      })
+    )
+
+    expect(store.getState().slippage).toBe('2')
+    expect(store.getState().routePriority).toBe('FASTEST')
   })
 })
