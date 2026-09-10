@@ -1,0 +1,29 @@
+name: Validate widget settings defaults
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  widget-settings-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Install dependencies
+        uses: ./.github/actions/pnpm-install
+      - name: Run widget settings regression test
+        run: pnpm --filter @lifi/widget exec vitest run src/stores/settings/useSettingsActions.test.tsx
+      - name: Check formatting
+        run: pnpm check
+      - name: Build workspace
+        env:
+          NODE_OPTIONS: "--max_old_space_size=4096"
+        run: pnpm build
+      - name: Check types
+        run: pnpm check:types
+      - name: Check widget circular dependencies
+        run: pnpm --filter @lifi/widget check:circular-deps
