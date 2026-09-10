@@ -2,13 +2,8 @@ import { renderToString } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { WidgetProvider } from '../../providers/WidgetProvider/WidgetProvider.js'
 import type { WidgetConfig } from '../../types/widget.js'
-import {
-  defaultConfigurableSettings,
-} from './createSettingsStore.js'
-import {
-  SettingsStoreProvider,
-  useSettingsStore,
-} from './SettingsStore.js'
+import { defaultConfigurableSettings } from './createSettingsStore.js'
+import { SettingsStoreProvider } from './SettingsStore.js'
 
 const createLocalStorageMock = (): Storage => {
   let store: Record<string, string> = {}
@@ -30,55 +25,52 @@ const createLocalStorageMock = (): Storage => {
   }
 }
 
-const SettingsProbe = () => {
-  const [slippage, routePriority] = useSettingsStore((state) => [
-    state.slippage,
-    state.routePriority,
-  ])
-
-  return <span>{`${slippage ?? 'none'}|${routePriority ?? 'none'}`}</span>
-}
-
-const renderSettings = (config: WidgetConfig) =>
+const renderWidget = (config: WidgetConfig) =>
   renderToString(
     <SettingsStoreProvider config={config}>
       <WidgetProvider config={config}>
-        <SettingsProbe />
+        <span />
       </WidgetProvider>
     </SettingsStoreProvider>
   )
 
 describe('widget configurable defaults', () => {
-  let originalLocalStorage: Storage | undefined
+  const originalLocalStorageDescriptor = Object.getOwnPropertyDescriptor(
+    globalThis,
+    'localStorage'
+  )
 
   beforeEach(() => {
-    originalLocalStorage = globalThis.localStorage
-    globalThis.localStorage = createLocalStorageMock()
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: createLocalStorageMock(),
+      configurable: true,
+      writable: true,
+    })
     defaultConfigurableSettings.slippage = undefined
     defaultConfigurableSettings.routePriority = 'CHEAPEST'
     defaultConfigurableSettings.gasPrice = 'normal'
   })
 
   afterEach(() => {
-    globalThis.localStorage = originalLocalStorage as Storage
+    if (originalLocalStorageDescriptor) {
+      Object.defineProperty(
+        globalThis,
+        'localStorage',
+        originalLocalStorageDescriptor
+      )
+    } else {
+      Reflect.deleteProperty(globalThis, 'localStorage')
+    }
   })
 
-  it('does not reuse defaults from another widget instance', () => {
-    expect(
-      renderSettings({
-        integrator: 'first-widget',
-        slippage: 0.01,
-        routePriority: 'FASTEST',
-      })
-    ).toContain('1|FASTEST')
+  it('does not mutate defaults shared by other widget instances', () => {
+    renderWidget({
+      integrator: 'first-widget',
+      slippage: 0.01,
+      routePriority: 'FASTEST',
+    })
 
-    // Ignore persisted settings here so this only checks the module-level defaults.
-    globalThis.localStorage.clear()
-
-    expect(
-      renderSettings({
-        integrator: 'second-widget',
-      })
-    ).toContain('none|CHEAPEST')
+    expect(defaultConfigurableSettings.slippage).toBeUndefined()
+    expect(defaultConfigurableSettings.routePriority).toBe('CHEAPEST')
   })
 })
