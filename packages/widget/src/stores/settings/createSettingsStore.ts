@@ -22,6 +22,21 @@ export const defaultConfigurableSettings: Pick<
   gasPrice: 'normal',
 }
 
+export const getDefaultConfigurableSettings = (
+  config?: WidgetConfig
+): Pick<SettingsState, 'routePriority' | 'slippage' | 'gasPrice'> => {
+  const configuredSlippage = (config?.slippage || 0) * 100
+
+  return {
+    routePriority:
+      config?.routePriority || defaultConfigurableSettings.routePriority,
+    slippage: (
+      configuredSlippage || defaultConfigurableSettings.slippage
+    )?.toString(),
+    gasPrice: defaultConfigurableSettings.gasPrice,
+  }
+}
+
 const defaultSettings: SettingsProps = {
   gasPrice: 'normal',
   enabledAutoRefuel: true,
@@ -65,8 +80,10 @@ export const createSettingsStore = (
   const toEnabledMap = (keys: string[] = []): Record<string, boolean> =>
     Object.fromEntries(keys.map((key) => [key, true] as const))
   // Deny-only configs can't be seeded; the tool universe is unknown until /tools.
+  const configurableSettings = getDefaultConfigurableSettings(config)
   const initialSettings: SettingsProps = {
     ...defaultSettings,
+    ...configurableSettings,
     ...buildToolState('Bridges', toEnabledMap(config.bridges?.allow)),
     ...buildToolState('Exchanges', toEnabledMap(config.exchanges?.allow)),
   }
@@ -174,7 +191,7 @@ export const createSettingsStore = (
         reset: (bridges, exchanges) => {
           set(() => ({
             ...defaultSettings,
-            ...defaultConfigurableSettings,
+            ...configurableSettings,
           }))
           get().initializeTools('Bridges', bridges, true)
           get().initializeTools('Exchanges', exchanges, true)
