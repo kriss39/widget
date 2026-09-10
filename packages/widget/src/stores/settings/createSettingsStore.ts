@@ -80,10 +80,10 @@ export const createSettingsStore = (
   const toEnabledMap = (keys: string[] = []): Record<string, boolean> =>
     Object.fromEntries(keys.map((key) => [key, true] as const))
   // Deny-only configs can't be seeded; the tool universe is unknown until /tools.
-  const configurableSettings = getDefaultConfigurableSettings(config)
+  const initialConfigurableSettings = getDefaultConfigurableSettings(config)
   const initialSettings: SettingsProps = {
     ...defaultSettings,
-    ...configurableSettings,
+    ...initialConfigurableSettings,
     ...buildToolState('Bridges', toEnabledMap(config.bridges?.allow)),
     ...buildToolState('Exchanges', toEnabledMap(config.exchanges?.allow)),
   }
@@ -188,7 +188,11 @@ export const createSettingsStore = (
               [`disabled${toolType}`]: disabledKeys,
             }
           }),
-        reset: (bridges, exchanges) => {
+        reset: (
+          bridges,
+          exchanges,
+          configurableSettings = initialConfigurableSettings
+        ) => {
           set(() => ({
             ...defaultSettings,
             ...configurableSettings,
