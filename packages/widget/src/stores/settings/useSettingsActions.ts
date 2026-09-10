@@ -46,7 +46,11 @@ export const useSettingsActions = (): {
   setValue: ValueSetter<SettingsProps>
   setValues: (values: Partial<SettingsProps>) => void
   setDefaultSettings: (config?: WidgetConfig) => void
-  resetSettings: (bridges: string[], exchanges: string[]) => void
+  resetSettings: (
+    bridges: string[],
+    exchanges: string[],
+    config?: WidgetConfig
+  ) => void
   setToolValue: (
     toolType: SettingsToolType,
     tool: string,
@@ -107,8 +111,15 @@ export const useSettingsActions = (): {
   )
 
   const resetWithEmittedEvents = useCallback(
-    (bridges: string[], exchanges: string[]) => {
-      emitEventOnChange(emitter, actions, actions.reset, bridges, exchanges)
+    (bridges: string[], exchanges: string[], config?: WidgetConfig) => {
+      emitEventOnChange(
+        emitter,
+        actions,
+        actions.reset,
+        bridges,
+        exchanges,
+        getDefaultConfigurableSettings(config)
+      )
     },
     [emitter, actions]
   )
